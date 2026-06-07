@@ -1,0 +1,289 @@
+'use client'
+
+import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Plus, BookOpen, Clock, CheckCircle2, AlertCircle, FileText, ChevronRight, GraduationCap } from 'lucide-react'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import DashboardSettings from '@/components/DashboardSettings'
+
+export default function StudentDashboard() {
+  const router = useRouter()
+  const [profile, setProfile] = useState<any>(null)
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [activeTab, setActiveTab] = useState('board')
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch session
+        const sessionRes = await fetch('/api/auth/session')
+        const sessionData = await sessionRes.json()
+        if (!sessionData.user) {
+          router.push('/auth/login')
+          return
+        }
+        setProfile(sessionData.user)
+
+        // Parse tab param
+        const tabParam = new URLSearchParams(window.location.search).get('tab')
+        if (tabParam === 'settings') {
+          setActiveTab('settings')
+        } else {
+          setActiveTab('board')
+        }
+
+        // Fetch requests
+        const reqRes = await fetch('/api/requests')
+        const reqData = await reqRes.json()
+        setRequests(reqData.requests || [])
+
+      } catch (err) {
+        console.error('Error fetching student dashboard:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [router])
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Submitted':
+        return 'bg-neutral-500/10 text-neutral-600 dark:text-neutral-300 border-neutral-400/30'
+      case 'Matched':
+        return 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-400/30'
+      case 'In progress':
+        return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-400/30'
+      case 'Ready':
+        return 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-400/30'
+      case 'Delivered':
+        return 'bg-green-500/10 text-green-700 dark:text-green-300 border-green-400/30'
+      default:
+        return 'bg-neutral-500/10 text-neutral-600 dark:text-neutral-300 border-neutral-400/30'
+    }
+  }
+
+  const currencySymbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', AUD: 'A$' }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center bg-background">
+          <span className="text-sm font-semibold text-text-muted">Loading your dashboard...</span>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <Navbar />
+
+      <main className="flex-grow py-12 px-6">
+        <div className="max-w-7xl mx-auto space-y-10">
+          
+          {/* Header Card */}
+          <div className="bg-card border border-border p-8 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm">
+            <div className="space-y-2">
+              <span className="text-[10px] uppercase font-bold text-accent-warm bg-accent-warm-light px-2.5 py-0.5 rounded-full">
+                {profile?.requirement_type === 'slm' ? 'SLM Enterprise Client' : 
+                 profile?.requirement_type === 'app_studio' ? 'App Studio Business Client' : 
+                 'Student Academic Account'}
+              </span>
+              <h1 className="font-serif text-3xl font-bold text-foreground">
+                Hello, {profile?.full_name || 'Member'}
+              </h1>
+              <div className="flex flex-wrap gap-4 text-xs text-text-muted">
+                <span className="flex items-center gap-1.5">
+                  <GraduationCap className="h-4 w-4" /> 
+                  {profile?.requirement_type === 'slm' ? 'Company / Institution: ' : 
+                   profile?.requirement_type === 'app_studio' ? 'Business / Org: ' : 
+                   'University / Institution: '}
+                  {profile?.university || 'Independent Organisation'}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="h-4 w-4" /> 
+                  {profile?.requirement_type === 'slm' ? 'Target Domain: ' : 
+                   profile?.requirement_type === 'app_studio' ? 'Project Category: ' : 
+                   'Course / Major: '}
+                  {profile?.course || 'General'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <Link
+                href="/dashboard/student/new"
+                className="inline-flex items-center gap-1.5 font-bold px-6 py-3 rounded-full bg-accent-warm text-white hover:bg-accent-warm-hover transition-all duration-200 shadow-md shadow-accent-warm/10 text-sm"
+              >
+                <Plus className="h-4 w-4" /> 
+                {profile?.requirement_type === 'slm' ? 'Request AI / SLM Tuning' : 
+                 profile?.requirement_type === 'app_studio' ? 'Request Software / Web Build' : 
+                 'Request Tutoring / Support'}
+              </Link>
+            </div>
+          </div>
+
+          {/* Dashboard Tab Toggles */}
+          <div className="flex border-b border-border/80 pb-px gap-8">
+            <button
+              onClick={() => {
+                setActiveTab('board')
+                router.replace('/dashboard/student?tab=board')
+              }}
+              className={`pb-4 text-sm font-semibold relative transition-colors ${
+                activeTab === 'board' ? 'text-accent-warm' : 'text-text-muted hover:text-foreground'
+              }`}
+            >
+              My Dashboard
+              {activeTab === 'board' && (
+                <div className="absolute bottom-0 inset-x-0 h-0.5 bg-accent-warm rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('settings')
+                router.replace('/dashboard/student?tab=settings')
+              }}
+              className={`pb-4 text-sm font-semibold relative transition-colors ${
+                activeTab === 'settings' ? 'text-accent-warm' : 'text-text-muted hover:text-foreground'
+              }`}
+            >
+              Profile Settings
+              {activeTab === 'settings' && (
+                <div className="absolute bottom-0 inset-x-0 h-0.5 bg-accent-warm rounded-full" />
+              )}
+            </button>
+          </div>
+
+          {activeTab === 'settings' ? (
+            <DashboardSettings 
+              profile={profile} 
+              onProfileUpdate={(updated) => setProfile(updated)} 
+              role="student" 
+            />
+          ) : (
+            <>
+              {/* Quick Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { 
+                    label: profile?.requirement_type === 'slm' ? 'Total SLM Requests' : 
+                           profile?.requirement_type === 'app_studio' ? 'Total Software Requests' : 
+                           'Total Support Requests', 
+                    value: requests.length, 
+                    icon: <FileText className="h-5 w-5 text-accent-warm" /> 
+                  },
+                  { 
+                    label: profile?.requirement_type === 'slm' ? 'Awaiting Allocation' : 
+                           profile?.requirement_type === 'app_studio' ? 'Awaiting Developer Match' : 
+                           'Awaiting Matching', 
+                    value: requests.filter((r) => r.status === 'Submitted').length, 
+                    icon: <Clock className="h-5 w-5 text-blue-500" /> 
+                  },
+                  { 
+                    label: 'In Progress', 
+                    value: requests.filter((r) => r.status === 'In progress').length, 
+                    icon: <AlertCircle className="h-5 w-5 text-amber-500" /> 
+                  },
+                  { 
+                    label: profile?.requirement_type === 'slm' ? 'Deployed / Delivered' : 
+                           profile?.requirement_type === 'app_studio' ? 'Deployed / Deployed' : 
+                           'Delivered', 
+                    value: requests.filter((r) => r.status === 'Delivered').length, 
+                    icon: <CheckCircle2 className="h-5 w-5 text-green-500" /> 
+                  }
+                ].map((stat, idx) => (
+                  <div key={idx} className="bg-card border border-border p-6 rounded-2xl shadow-sm space-y-3">
+                    <div className="p-2 bg-background border border-border inline-block rounded-xl">{stat.icon}</div>
+                    <div>
+                      <span className="text-[10px] font-bold text-text-muted uppercase block">{stat.label}</span>
+                      <span className="text-2xl font-serif font-bold text-foreground">{stat.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Requests List */}
+              <div className="space-y-4">
+                <h2 className="font-serif text-2xl font-bold text-foreground">
+                  {profile?.requirement_type === 'slm' ? 'AI & Small Language Model Tuning Briefs' : 
+                   profile?.requirement_type === 'app_studio' ? 'App Studio Development Projects' : 
+                   'Support & Tutoring Requests'}
+                </h2>
+                
+                {requests.length === 0 ? (
+                  <div className="bg-card border border-border rounded-3xl p-12 text-center space-y-4">
+                    <p className="text-sm text-text-muted">
+                      {profile?.requirement_type === 'slm' ? "You haven't submitted any SLM fine-tuning or preference alignment briefs yet." : 
+                       profile?.requirement_type === 'app_studio' ? "You haven't submitted any web software or database development projects yet." : 
+                       "You haven't submitted any tutoring or project support requests yet."}
+                    </p>
+                    <Link
+                      href="/dashboard/student/new"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-5 py-2.5 rounded-full bg-accent-warm text-white hover:bg-accent-warm-hover"
+                    >
+                      {profile?.requirement_type === 'slm' ? 'Submit Your First SLM Brief' : 
+                       profile?.requirement_type === 'app_studio' ? 'Create Your First Software Brief' : 
+                       'Create Your First Request'}
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="bg-card border border-border rounded-3xl overflow-hidden divide-y divide-border/60">
+                    {requests.map((req) => (
+                      <div key={req.id} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-accent-warm-light/5 transition-colors">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-bold text-text-muted uppercase">{req.subject_code || 'General'}</span>
+                            <span className="text-xs text-text-muted">•</span>
+                            <span className="text-xs font-medium text-foreground">{req.service_type}</span>
+                            <span className="text-xs text-text-muted">•</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 border rounded-full ${getStatusColor(req.status)}`}>
+                              {req.status}
+                            </span>
+                          </div>
+                          <h4 className="font-serif text-lg font-bold text-foreground line-clamp-1 max-w-xl">
+                            {req.description}
+                          </h4>
+                          <p className="text-xs text-text-muted">
+                            Assigned Specialist: <span className="font-bold text-foreground">{req.specialist_name || 'Finding matching expert...'}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-6 justify-between w-full md:w-auto">
+                          {profile?.requirement_type !== 'slm' && profile?.requirement_type !== 'app_studio' && (
+                            <div className="text-right">
+                              <span className="text-[10px] font-bold text-text-muted uppercase block">Invoice Price</span>
+                              <span className="text-sm font-bold text-accent-warm font-mono">
+                                {currencySymbols[req.currency] || '$'}{req.price}
+                              </span>
+                            </div>
+                          )}
+                          <Link
+                            href={`/dashboard/student/request/${req.id}`}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-foreground hover:text-accent-warm transition-colors"
+                          >
+                            View details <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  )
+}

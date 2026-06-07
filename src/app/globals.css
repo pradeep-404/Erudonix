@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F8F9FC; /* Modern crisp blue-white */
+  --foreground: #101216; /* Clean deep gray-black */
+  --card: #FFFFFF;
+  --border: #E2E8F0;
+  
+  /* Gemini-inspired premium gradients */
+  --gemini-blue: #4285F4;
+  --gemini-purple: #9B51E0;
+  --gemini-indigo: #1A73E8;
+  --gemini-amber: #F2994A;
+  
+  --accent: #1A73E8; /* Gemini primary blue */
+  --accent-hover: #1557B0;
+  --accent-light: #E8F0FE;
+  
+  --text-muted: #5F6368;
+}
+
+.dark {
+  --background: #0b0f19; /* AWS dark console background */
+  --foreground: #eaeded; /* AWS light grey text */
+  --card: #161b22; /* AWS dark card background */
+  --border: #21262d; /* AWS dark border */
+  --text-muted: #8b949e;
+  --accent-light: rgba(255, 153, 0, 0.1);
+  --accent: #ff9900;
+  --accent-hover: #ec7211;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-accent-warm: var(--accent);
+  --color-accent-warm-hover: var(--accent-hover);
+  --color-accent-warm-light: var(--accent-light);
+  --color-text-muted: var(--text-muted);
+  
+  /* Brand colors */
+  --color-gemini-blue: var(--gemini-blue);
+  --color-gemini-purple: var(--gemini-purple);
+  --color-gemini-indigo: var(--gemini-indigo);
+  --color-gemini-amber: var(--gemini-amber);
+
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom drift aurora animation helper */
+@keyframes drift {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(40px, -60px) scale(1.15);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+/* Wind blowing effect for micro stars/particles */
+@keyframes windFlow {
+  0% {
+    transform: translate(-100px, 0px) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(calc(100vw + 100px), -100px) rotate(360deg) scale(1.2);
+    opacity: 0;
+  }
+}
+
+.animate-drift-slow {
+  animation: drift 20s infinite ease-in-out;
+}
+
+.animate-drift-slower {
+  animation: drift 25s infinite ease-in-out reverse;
+}
+
+.animate-wind-slow-1 {
+  animation: windFlow 12s infinite linear;
+}
+
+.animate-wind-slow-2 {
+  animation: windFlow 16s infinite linear;
+  animation-delay: 3s;
+}
+
+.animate-wind-slow-3 {
+  animation: windFlow 20s infinite linear;
+  animation-delay: 7s;
+}
+
+
