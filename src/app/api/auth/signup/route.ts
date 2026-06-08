@@ -10,8 +10,9 @@ async function hashPassword(password: string, salt: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const client = await getClient()
+  let client
   try {
+    client = await getClient()
     const { email, password, fullName, role, requirementType, otpCode } = await request.json()
 
     if (!email || !password || !fullName) {
@@ -118,9 +119,13 @@ export async function POST(request: Request) {
     return response
 
   } catch (err: any) {
-    await client.query('ROLLBACK')
+    if (client) {
+      await client.query('ROLLBACK')
+    }
     return NextResponse.json({ error: err.message || 'Signup failed' }, { status: 500 })
   } finally {
-    client.release()
+    if (client) {
+      client.release()
+    }
   }
 }

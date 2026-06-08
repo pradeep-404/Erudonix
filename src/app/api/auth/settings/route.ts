@@ -23,9 +23,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const client = await getClient()
+  let client
 
   try {
+    client = await getClient()
     const { fullName, email, currentPassword, newPassword, avatarUrl, university, course } = await request.json()
 
     await client.query('BEGIN')
@@ -117,9 +118,13 @@ export async function PUT(request: Request) {
     return response
 
   } catch (err: any) {
-    await client.query('ROLLBACK')
+    if (client) {
+      await client.query('ROLLBACK')
+    }
     return NextResponse.json({ error: err.message || 'Failed to update settings' }, { status: 500 })
   } finally {
-    client.release()
+    if (client) {
+      client.release()
+    }
   }
 }

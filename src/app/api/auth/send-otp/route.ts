@@ -14,8 +14,9 @@ const transporter = nodemailer.createTransport({
 })
 
 export async function POST(request: Request) {
-  const dbClient = await getClient()
+  let dbClient
   try {
+    dbClient = await getClient()
     const { email } = await request.json()
 
     if (!email) {
@@ -108,6 +109,8 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   } finally {
-    dbClient.release()
+    if (dbClient) {
+      dbClient.release()
+    }
   }
 }

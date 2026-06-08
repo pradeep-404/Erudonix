@@ -10,8 +10,9 @@ async function hashPassword(password: string, salt: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const dbClient = await getClient()
+  let dbClient
   try {
+    dbClient = await getClient()
     const { email, otpCode, newPassword } = await request.json()
 
     if (!email || !otpCode || !newPassword) {
@@ -93,10 +94,14 @@ export async function POST(request: Request) {
     return response
 
   } catch (err: any) {
-    await dbClient.query('ROLLBACK')
+    if (dbClient) {
+      await dbClient.query('ROLLBACK')
+    }
     console.error('Error in reset-password route:', err)
     return NextResponse.json({ error: err.message || 'Password reset failed' }, { status: 500 })
   } finally {
-    dbClient.release()
+    if (dbClient) {
+      dbClient.release()
+    }
   }
 }
