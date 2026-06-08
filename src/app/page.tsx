@@ -12,8 +12,6 @@ import {
   Zap,
   Users,
   Star,
-  Plus,
-  Minus,
   Sparkles,
   Server,
   Play,
@@ -25,16 +23,10 @@ import {
 } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import PricingEstimator from '@/components/PricingEstimator'
+import LiveOperationsMonitor from '@/components/LiveOperationsMonitor'
 
 export default function HomePage() {
-  // Currency and Intake Estimator States
-  const [currency, setCurrency] = useState<'USD' | 'EUR' | 'GBP'>('USD')
-  const [calcService, setCalcService] = useState<'academic_support' | 'small_language_models' | 'app_studio'>('academic_support')
-  const [calcPages, setCalcPages] = useState(5)
-  const [calcSlmScale, setCalcSlmScale] = useState<'tune' | 'complex' | 'custom'>('tune')
-  const [calcAppScale, setCalcAppScale] = useState<'dash' | 'full' | 'enterprise'>('dash')
-  const [user, setUser] = useState<any>(null)
-
   // Product Showcase active tab
   const [activeTab, setActiveTab] = useState<'academic' | 'slm' | 'app_studio'>('academic')
 
@@ -44,53 +36,9 @@ export default function HomePage() {
   const y2 = useTransform(scrollY, [0, 1000], [0, -150])
   const opacityFade = useTransform(scrollY, [0, 300], [1, 0])
 
-  useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const res = await fetch('/api/auth/session')
-        const data = await res.json()
-        if (data.user) {
-          setUser(data.user)
-        }
-      } catch (err) {
-        console.error(err)
-      }
-    }
-    fetchSession()
-  }, [])
-
   // Rolling LLM Box States
   const [tuningStatus, setTuningStatus] = useState<'base' | 'tuning' | 'optimized'>('base')
   const [tuningProgress, setTuningProgress] = useState(0)
-
-  const currencySymbols = { USD: '$', EUR: '€', GBP: '£' }
-
-  const pricingRates = {
-    USD: { base: 35, multiplier: { academic_support: 1.0, small_language_models: 10.0, app_studio: 15.0 }, page: 15, slm: { tune: 150, complex: 600, custom: 2000 }, app: { dash: 250, full: 800, enterprise: 3000 } },
-    EUR: { base: 30, multiplier: { academic_support: 1.0, small_language_models: 10.0, app_studio: 15.0 }, page: 12, slm: { tune: 130, complex: 550, custom: 1800 }, app: { dash: 220, full: 700, enterprise: 2600 } },
-    GBP: { base: 25, multiplier: { academic_support: 1.0, small_language_models: 10.0, app_studio: 15.0 }, page: 10, slm: { tune: 110, complex: 450, custom: 1500 }, app: { dash: 180, full: 600, enterprise: 2200 } }
-  }
-
-  const calculateEstimate = () => {
-    const rate = pricingRates[currency]
-    
-    if (calcService === 'academic_support') {
-      const basePrice = rate.base
-      const additionalPages = Math.max(0, calcPages - 1)
-      return basePrice + (additionalPages * rate.page)
-    } else if (calcService === 'small_language_models') {
-      return rate.slm[calcSlmScale]
-    } else {
-      return rate.app[calcAppScale]
-    }
-  }
-
-  const handleIntakeAction = (e: React.MouseEvent) => {
-    if (!user) {
-      e.preventDefault()
-      window.dispatchEvent(new CustomEvent('open-auth-drawer'))
-    }
-  }
 
   const handleSimulatorHover = () => {
     if (tuningStatus === 'base') {
@@ -183,8 +131,8 @@ export default function HomePage() {
             
             {/* Left Hero Column */}
             <div className="space-y-6 lg:col-span-7">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded border border-accent/30 bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-wider font-mono">
-                <Sparkles className="h-3.5 w-3.5" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gemini-blue/20 bg-accent-warm-light/60 text-gemini-indigo text-xs font-semibold uppercase tracking-wider shadow-sm font-sans">
+                <Sparkles className="h-3.5 w-3.5 text-gemini-purple animate-pulse" />
                 Erudogix Console v1.2.0 Active
               </div>
               
@@ -192,10 +140,10 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="font-mono text-4xl md:text-6xl font-black tracking-tight text-foreground leading-none"
+                className="font-serif text-4xl md:text-6xl font-bold tracking-tight text-foreground leading-tight"
               >
                 Build Intelligent <br />
-                <span className="text-accent">Coaching Systems</span> & <br />
+                <span className="bg-gradient-to-r from-gemini-blue via-gemini-purple to-gemini-amber bg-clip-text text-transparent italic">Coaching Systems</span> & <br />
                 SLM App Studios
               </motion.h1>
               
@@ -217,7 +165,7 @@ export default function HomePage() {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link
                     href="/services"
-                    className="group inline-flex items-center justify-center font-bold px-6 py-3 rounded bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] text-xs font-mono"
+                    className="group inline-flex items-center justify-center font-bold px-6 py-3 rounded-full bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-all shadow-md text-xs font-sans"
                   >
                     Create an Account
                     <ArrowRight className="ml-1.5 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -226,7 +174,7 @@ export default function HomePage() {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link
                     href="#services"
-                    className="inline-flex items-center justify-center font-bold px-6 py-3 rounded border-2 border-border bg-transparent hover:bg-card dark:hover:bg-neutral-800 text-foreground transition-all text-xs font-mono"
+                    className="inline-flex items-center justify-center font-bold px-6 py-3 rounded-full border-2 border-border bg-transparent hover:bg-card dark:hover:bg-neutral-800 text-foreground transition-all text-xs font-sans"
                   >
                     Explore Console
                   </Link>
@@ -333,8 +281,8 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             {/* Left text column */}
             <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-wider font-mono">
-                <Star className="h-3.5 w-3.5" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gemini-blue/20 bg-accent-warm-light/60 text-gemini-indigo text-xs font-semibold uppercase tracking-wider shadow-sm font-sans">
+                <Star className="h-3.5 w-3.5 text-gemini-purple animate-pulse" />
                 Trusted by 500+ students worldwide
               </div>
               <h2 className="font-serif text-3xl md:text-5xl font-bold text-foreground leading-tight">
@@ -353,7 +301,7 @@ export default function HomePage() {
                   { value: '15+', label: 'Countries Served' },
                 ].map((stat) => (
                   <div key={stat.label}>
-                    <div className="font-mono text-2xl font-black text-accent">{stat.value}</div>
+                    <div className="font-serif text-2xl md:text-3xl font-bold text-gemini-indigo">{stat.value}</div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted mt-0.5">{stat.label}</div>
                   </div>
                 ))}
@@ -361,14 +309,14 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link 
                   href="/auth/signup" 
-                  className="inline-flex items-center justify-center font-bold px-6 py-3 rounded-full bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-all shadow-lg text-xs font-mono"
+                  className="inline-flex items-center justify-center font-bold px-6 py-3 rounded-full bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-all shadow-lg text-xs font-sans"
                 >
                   Sign Up Free
                   <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Link>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent('open-auth-drawer'))}
-                  className="inline-flex items-center justify-center font-bold px-6 py-3 rounded-full border border-border bg-background hover:bg-card dark:hover:bg-neutral-800 transition-all text-xs font-mono text-foreground"
+                  className="inline-flex items-center justify-center font-bold px-6 py-3 rounded-full border border-border bg-background hover:bg-card dark:hover:bg-neutral-800 transition-all text-xs font-sans text-foreground"
                 >
                   Sign In
                 </button>
@@ -431,14 +379,14 @@ export default function HomePage() {
                 return (
                   <div
                     key={idx}
-                    className="group relative bg-card border border-border rounded-2xl p-5 hover:border-accent hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-lg overflow-hidden"
+                    className="group relative bg-card/60 backdrop-blur-sm border border-border/80 rounded-2xl p-5 hover:border-accent hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-lg overflow-hidden"
                     style={{animationDelay: card.delay}}
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
                     <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-3 shadow-md`}>
                       <Icon className="h-5 w-5 text-white" />
                     </div>
-                    <h4 className="font-mono text-sm font-bold text-foreground mb-1">{card.title}</h4>
+                    <h4 className="font-sans text-sm font-bold text-foreground mb-1">{card.title}</h4>
                     <p className="text-xs text-text-muted leading-relaxed">{card.description}</p>
                   </div>
                 )
@@ -459,7 +407,7 @@ export default function HomePage() {
             }
           `}</style>
           <div className="max-w-7xl mx-auto px-6 mb-3">
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest block text-center font-mono">
+            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest block text-center font-sans">
               Mentored students and specialists across global institutions
             </span>
           </div>
@@ -513,9 +461,9 @@ export default function HomePage() {
                   </svg>
                 )}
               ].map((uni, idx) => (
-                <div key={idx} className="inline-flex items-center gap-2 bg-card border border-border px-4 py-2 rounded shadow-sm text-xs transition-colors hover:border-accent">
+                <div key={idx} className="inline-flex items-center gap-2 bg-card/50 backdrop-blur-xs border border-border/85 px-4 py-2.5 rounded-2xl shadow-sm text-xs transition-colors hover:border-accent">
                   {uni.icon}
-                  <span className="font-mono font-bold text-foreground">
+                  <span className="font-sans font-bold text-foreground">
                     {uni.name}
                   </span>
                 </div>
@@ -568,9 +516,9 @@ export default function HomePage() {
                   </svg>
                 )}
               ].map((uni, idx) => (
-                <div key={idx + 100} className="inline-flex items-center gap-2 bg-card border border-border px-4 py-2 rounded shadow-sm text-xs transition-colors hover:border-accent">
+                <div key={idx + 100} className="inline-flex items-center gap-2 bg-card/50 backdrop-blur-xs border border-border/85 px-4 py-2.5 rounded-2xl shadow-sm text-xs transition-colors hover:border-accent">
                   {uni.icon}
-                  <span className="font-mono font-bold text-foreground">
+                  <span className="font-sans font-bold text-foreground">
                     {uni.name}
                   </span>
                 </div>
@@ -599,7 +547,7 @@ export default function HomePage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-6 py-4 border-b-2 font-mono text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`flex items-center gap-2 px-6 py-4 border-b-2 font-sans text-xs font-bold whitespace-nowrap transition-all ${
                       activeTab === tab.id
                         ? 'border-accent text-accent bg-card/50'
                         : 'border-transparent text-text-muted hover:text-foreground hover:bg-card/20'
@@ -625,18 +573,18 @@ export default function HomePage() {
                     className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
                   >
                     <div className="space-y-6">
-                      <h3 className="font-mono text-2xl font-bold text-foreground">Advanced Academic Coaching & Review</h3>
+                      <h3 className="font-serif text-2xl md:text-3xl font-bold text-foreground">Advanced Academic Coaching & Review</h3>
                       <p className="text-sm text-text-muted leading-relaxed">
                         Guided 1:1 educational feedback, study reviews, and syllabus coaching designed to support independent achievement and top target grades (80+ average). Tutors trace progress and assign metrics out of 100 on students' dashboards.
                       </p>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-card border border-border rounded-2xl">
-                          <span className="block font-mono text-accent font-black text-xl">92/100</span>
+                          <span className="block font-serif text-gemini-indigo font-bold text-2xl">92/100</span>
                           <span className="text-[10px] text-text-muted font-bold block uppercase tracking-wide">Avg Target Achieved</span>
                         </div>
                         <div className="p-4 bg-card border border-border rounded-2xl">
-                          <span className="block font-mono text-accent font-black text-xl">1:1 Private</span>
+                          <span className="block font-serif text-gemini-indigo font-bold text-2xl">1:1 Private</span>
                           <span className="text-[10px] text-text-muted font-bold block uppercase tracking-wide">Concept Coaching</span>
                         </div>
                       </div>
@@ -661,7 +609,7 @@ export default function HomePage() {
                         className="w-full h-auto object-cover rounded-xl border border-border" 
                       />
                       <div className="absolute bottom-6 left-6 z-20">
-                        <span className="text-[9px] font-mono text-accent uppercase tracking-wider block font-bold">Dashboard Preview</span>
+                        <span className="text-[9px] font-sans text-accent uppercase tracking-wider block font-bold">Dashboard Preview</span>
                         <span className="text-sm font-bold text-white block">Student Operations & Results Hub</span>
                       </div>
                     </div>
@@ -678,18 +626,18 @@ export default function HomePage() {
                     className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
                   >
                     <div className="space-y-6">
-                      <h3 className="font-mono text-2xl font-bold text-foreground">Small Language Model Quantization</h3>
+                      <h3 className="font-serif text-2xl md:text-3xl font-bold text-foreground">Small Language Model Quantization</h3>
                       <p className="text-sm text-text-muted leading-relaxed">
                         Erudogix tunes and quantizes compact models (1.5B to 8B params) for corporate auditing and document classification. Models run locally offline, securing private data without external API calls.
                       </p>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-card border border-border rounded-2xl">
-                          <span className="block font-mono text-accent font-black text-xl">-50%</span>
+                          <span className="block font-serif text-gemini-indigo font-bold text-2xl">-50%</span>
                           <span className="text-[10px] text-text-muted font-bold block uppercase tracking-wide">Latency Reduction</span>
                         </div>
                         <div className="p-4 bg-card border border-border rounded-2xl">
-                          <span className="block font-mono text-accent font-black text-xl">DPO / SFT</span>
+                          <span className="block font-serif text-gemini-indigo font-bold text-2xl">DPO / SFT</span>
                           <span className="text-[10px] text-text-muted font-bold block uppercase tracking-wide">Quantized parameters</span>
                         </div>
                       </div>
@@ -714,7 +662,7 @@ export default function HomePage() {
                         className="w-full h-auto object-cover rounded-xl border border-border" 
                       />
                       <div className="absolute bottom-6 left-6 z-20">
-                        <span className="text-[9px] font-mono text-accent uppercase tracking-wider block font-bold">Telemetry Preview</span>
+                        <span className="text-[9px] font-sans text-accent uppercase tracking-wider block font-bold">Telemetry Preview</span>
                         <span className="text-sm font-bold text-white block">SLM Weights Tuning Interface</span>
                       </div>
                     </div>
@@ -731,18 +679,18 @@ export default function HomePage() {
                     className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
                   >
                     <div className="space-y-6">
-                      <h3 className="font-mono text-2xl font-bold text-foreground">Custom App Studio & PayFlow Ledger</h3>
+                      <h3 className="font-serif text-2xl md:text-3xl font-bold text-foreground">Custom App Studio & PayFlow Ledger</h3>
                       <p className="text-sm text-text-muted leading-relaxed">
                         High-performance application engineering specializing in custom fintech, timesheet coordination, and ledger auditing engines. Ideal for teams needing secure, clean administrative consoles.
                       </p>
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-card border border-border rounded-2xl">
-                          <span className="block font-mono text-accent font-black text-xl">PayFlow API</span>
+                          <span className="block font-serif text-gemini-indigo font-bold text-2xl">PayFlow API</span>
                           <span className="text-[10px] text-text-muted font-bold block uppercase tracking-wide">Fintech Integration</span>
                         </div>
                         <div className="p-4 bg-card border border-border rounded-2xl">
-                          <span className="block font-mono text-accent font-black text-xl">Next.js / PG</span>
+                          <span className="block font-serif text-gemini-indigo font-bold text-2xl">Next.js / PG</span>
                           <span className="text-[10px] text-text-muted font-bold block uppercase tracking-wide">Modern Tech Stack</span>
                         </div>
                       </div>
@@ -763,13 +711,13 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
                       <div className="h-[250px] bg-gradient-to-tr from-[#1f2937] to-[#111827] rounded-xl border border-border flex flex-col justify-center items-center p-6 text-center">
                         <Database className="h-12 w-12 text-accent mb-3 animate-pulse" />
-                        <h4 className="font-mono text-sm font-bold text-white">App Studio Database Console</h4>
+                        <h4 className="font-sans text-sm font-bold text-white">App Studio Database Console</h4>
                         <p className="text-[11px] text-neutral-300 mt-1 leading-relaxed">
                           PayFlow features automated ledgers, currency translations, and PDF invoice compilations for student client accounts.
                         </p>
                       </div>
                       <div className="absolute bottom-6 left-6 z-20">
-                        <span className="text-[9px] font-mono text-accent uppercase tracking-wider block font-bold">Product Showcase</span>
+                        <span className="text-[9px] font-sans text-accent uppercase tracking-wider block font-bold">Product Showcase</span>
                         <span className="text-sm font-bold text-white block">PayFlow Administrative Ledger</span>
                       </div>
                     </div>
@@ -777,6 +725,27 @@ export default function HomePage() {
                 )}
               </AnimatePresence>
             </div>
+          </div>
+        </section>
+
+        {/* Live Operations Telemetry Sandbox Section */}
+        <section className="py-20 bg-card/40 border-b border-border relative transition-colors overflow-hidden">
+          {/* Subtle brand background glows */}
+          <div className="absolute top-[10%] left-[-15%] w-[40rem] h-[40rem] rounded-full bg-gemini-purple/5 blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-[10%] right-[-10%] w-[35rem] h-[35rem] rounded-full bg-gemini-blue/5 blur-[120px] pointer-events-none" />
+
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gemini-blue/20 bg-accent-warm-light/60 text-gemini-indigo text-xs font-semibold uppercase tracking-wider shadow-sm">
+                <Zap className="h-3.5 w-3.5 text-gemini-purple animate-pulse" /> Sandbox Mode
+              </span>
+              <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground">Interactive Simulation Sandbox</h2>
+              <p className="text-sm text-text-muted">
+                Run live operations actions directly in the virtual console to trace draft sweeps, weight optimizations, and PostgreSQL billing connections.
+              </p>
+            </div>
+
+            <LiveOperationsMonitor />
           </div>
         </section>
 
@@ -791,36 +760,36 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
               
               {/* SLM Project Case */}
-              <div className="group bg-card border border-border p-8 rounded-2xl space-y-6 hover:border-accent hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+              <div className="group bg-card/50 backdrop-blur-md border border-border/85 p-8 rounded-2xl space-y-6 hover:border-accent hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-mono font-bold text-accent uppercase tracking-wider bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">
+                  <span className="text-[9px] font-sans font-bold text-accent uppercase tracking-wider bg-accent/10 border border-accent/20 px-2.5 py-0.5 rounded-full">
                     Model Tuning
                   </span>
-                  <span className="text-xs text-text-muted font-mono">Project: Legal-Llama-7B</span>
+                  <span className="text-xs text-text-muted font-sans font-semibold">Project: Legal-Llama-7B</span>
                 </div>
-                <h3 className="font-mono text-lg font-bold text-foreground group-hover:text-accent transition-colors">Local Clause Audit Model</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground group-hover:text-accent transition-colors">Local Clause Audit Model</h3>
                 <p className="text-xs text-text-muted leading-relaxed">
                   Fine-tuned a 7B Parameter model for a major Australian corporate legal group. The model operates entirely offline on local server nodes, auditing contract templates for liability compliance while ensuring 100% data residency.
                 </p>
-                <div className="flex gap-6 text-[10px] font-mono text-text-muted bg-background p-3 rounded-xl border border-border">
+                <div className="flex gap-6 text-[10px] font-sans text-text-muted bg-background p-3 rounded-xl border border-border">
                   <span>Accuracy: 96.5% (+12%)</span>
                   <span>Avg Latency: 12ms</span>
                 </div>
               </div>
 
               {/* App Studio Case */}
-              <div className="group bg-card border border-border p-8 rounded-2xl space-y-6 hover:border-accent hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+              <div className="group bg-card/50 backdrop-blur-md border border-border/85 p-8 rounded-2xl space-y-6 hover:border-accent hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-mono font-bold text-accent uppercase tracking-wider bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">
+                  <span className="text-[9px] font-sans font-bold text-accent uppercase tracking-wider bg-accent/10 border border-accent/20 px-2.5 py-0.5 rounded-full">
                     App Studio
                   </span>
-                  <span className="text-xs text-text-muted font-mono">Project: PayFlow Invoicing</span>
+                  <span className="text-xs text-text-muted font-sans font-semibold">Project: PayFlow Invoicing</span>
                 </div>
-                <h3 className="font-mono text-lg font-bold text-foreground group-hover:text-accent transition-colors">PayFlow Invoicing Engine</h3>
+                <h3 className="font-serif text-lg font-bold text-foreground group-hover:text-accent transition-colors">PayFlow Invoicing Engine</h3>
                 <p className="text-xs text-text-muted leading-relaxed">
                   A high-velocity fintech tool built for international agencies. PayFlow automates ledger compilation, currency adjustments (USD/EUR/AUD), and tax-compliant invoicing templates for freelance and student tutors.
                 </p>
-                <div className="flex gap-6 text-[10px] font-mono text-text-muted bg-background p-3 rounded-xl border border-border">
+                <div className="flex gap-6 text-[10px] font-sans text-text-muted bg-background p-3 rounded-xl border border-border">
                   <span>Transactions: $1.2M+</span>
                   <span>Tech: Next.js / PostgreSQL</span>
                 </div>
@@ -834,8 +803,8 @@ export default function HomePage() {
         <section className="py-20 bg-card border-b border-border transition-colors duration-300">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/30 bg-accent/10 text-accent text-[10px] font-bold uppercase tracking-wider font-mono">
-                <Star className="h-3.5 w-3.5" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gemini-blue/20 bg-accent-warm-light/60 text-gemini-indigo text-xs font-semibold uppercase tracking-wider shadow-sm font-sans">
+                <Star className="h-3.5 w-3.5 text-gemini-purple animate-pulse" />
                 Real Student Results
               </div>
               <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground">What Our Students Say</h2>
@@ -843,7 +812,7 @@ export default function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
               {testimonials.map((t, idx) => (
-                <div key={idx} className="group bg-background border border-border rounded-2xl p-6 space-y-4 hover:border-accent hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                <div key={idx} className="group bg-card/45 backdrop-blur-md border border-border/85 rounded-2xl p-6 space-y-4 hover:border-accent hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                   <div className="flex gap-1">
                     {[1,2,3,4,5].map(s => (
                       <Star key={s} className="h-3.5 w-3.5 text-accent fill-current" />
@@ -853,7 +822,7 @@ export default function HomePage() {
                   <div className="border-t border-border pt-3 flex justify-between items-end">
                     <div>
                       <p className="text-xs font-bold text-foreground">{t.author}</p>
-                      <p className="text-[10px] text-accent font-mono font-bold mt-0.5">{t.achievement}</p>
+                      <p className="text-[10px] text-accent font-sans font-semibold mt-0.5">{t.achievement}</p>
                     </div>
                     <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-gemini-blue to-gemini-purple flex items-center justify-center text-white text-xs font-bold shrink-0">
                       {t.author[0]}
@@ -870,147 +839,10 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
               <h2 className="font-serif text-3xl md:text-4xl font-bold text-foreground">Estimate Project Cost</h2>
-              <p className="text-sm text-text-muted">Estimate your project costs instantly. Academic Support starts as low as £25 GBP, €30 EUR, and $35 USD.</p>
+              <p className="text-sm text-text-muted">Estimate your project costs instantly.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl mx-auto bg-card border border-border p-8 rounded-2xl shadow-xl transition-colors duration-300">
-              <div className="space-y-6">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-2 font-mono">Currency</label>
-                  <div className="flex gap-2">
-                    {(['USD', 'EUR', 'GBP'] as const).map((curr) => (
-                      <button
-                        key={curr}
-                        onClick={() => setCurrency(curr)}
-                        className={`flex-1 py-2 text-xs font-bold rounded font-mono border transition-all ${
-                          currency === curr
-                            ? 'bg-accent border-transparent text-white dark:text-[#19222d]'
-                            : 'border-border bg-background hover:bg-card text-foreground'
-                        }`}
-                      >
-                        {curr}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-2 font-mono">Service Line</label>
-                  <div className="flex flex-col gap-2">
-                    {[
-                      { id: 'academic_support', label: 'Academic Support' },
-                      { id: 'small_language_models', label: 'Small Language Models' },
-                      { id: 'app_studio', label: 'App Studio' }
-                    ].map((serv) => (
-                      <button
-                        key={serv.id}
-                        onClick={() => setCalcService(serv.id as any)}
-                        className={`py-3 px-5 text-xs font-mono font-bold text-left rounded border transition-all ${
-                          calcService === serv.id
-                            ? 'bg-accent/10 border-accent text-accent'
-                            : 'border-border bg-background hover:bg-card text-foreground'
-                        }`}
-                      >
-                        {serv.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {calcService === 'academic_support' && (
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-2 font-mono">Volume (Pages)</label>
-                    <div className="flex items-center justify-between bg-background border border-border p-2 rounded">
-                      <button
-                        onClick={() => setCalcPages(Math.max(1, calcPages - 1))}
-                        className="p-2 rounded border border-border bg-card text-foreground"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="font-mono font-bold text-xs">{calcPages} Pages</span>
-                      <button
-                        onClick={() => setCalcPages(calcPages + 1)}
-                        className="p-2 rounded border border-border bg-card text-foreground"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {calcService === 'small_language_models' && (
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-2 font-mono">Tuning Scale</label>
-                    <div className="flex flex-col gap-2">
-                      {[
-                        { id: 'tune', label: 'Supervised Fine-Tuning' },
-                        { id: 'complex', label: 'DPO Preference Alignment' },
-                        { id: 'custom', label: 'Custom Architecture Design' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => setCalcSlmScale(item.id as any)}
-                          className={`py-2.5 px-4 text-[11px] font-bold rounded border text-left transition-all ${
-                            calcSlmScale === item.id
-                              ? 'bg-accent/10 border-accent text-accent'
-                              : 'border-border bg-background hover:bg-card text-foreground'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {calcService === 'app_studio' && (
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted block mb-2 font-mono">Scope Size</label>
-                    <div className="flex flex-col gap-2">
-                      {[
-                        { id: 'dash', label: 'Basic Tool / Sheet Ledger' },
-                        { id: 'full', label: 'Full Web App & Ledger database' },
-                        { id: 'enterprise', label: 'Enterprise Fintech Suite' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => setCalcAppScale(item.id as any)}
-                          className={`py-2.5 px-4 text-[11px] font-bold rounded border text-left transition-all ${
-                            calcAppScale === item.id
-                              ? 'bg-accent/10 border-accent text-accent'
-                              : 'border-border bg-background hover:bg-card text-foreground'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Price output */}
-              <div className="bg-background border border-border p-6 rounded-2xl flex flex-col justify-between text-center">
-                <div className="space-y-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block font-mono">Estimated Console Cost</span>
-                  <div className="text-5xl font-mono font-black text-foreground">
-                    {currencySymbols[currency]}{calculateEstimate()}
-                  </div>
-                  <p className="text-[10px] text-text-muted leading-relaxed">
-                    This is an initial estimate. Final costs depend on deadlines and complexity. Quotes must be approved by the client before work begins.
-                  </p>
-                </div>
-                <div className="pt-6">
-                  <Link
-                    href={user ? "/dashboard/student/new" : "/auth/signup"}
-                    onClick={handleIntakeAction}
-                    className="w-full inline-flex items-center justify-center font-bold px-6 py-3 rounded bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 shadow text-xs transition-colors"
-                  >
-                    Submit Intake Brief
-                  </Link>
-                </div>
-              </div>
-            </div>
+            <PricingEstimator />
           </div>
         </section>
 
@@ -1090,8 +922,8 @@ export default function HomePage() {
 
             <div className="space-y-4">
               {faqs.map((faq, idx) => (
-                <div key={idx} className="p-6 bg-background border border-border rounded-2xl">
-                  <h4 className="font-mono text-sm font-bold text-foreground mb-2 flex items-start gap-2">
+                <div key={idx} className="p-6 bg-card/45 backdrop-blur-md border border-border/85 rounded-2xl">
+                  <h4 className="font-sans text-sm font-bold text-foreground mb-2 flex items-start gap-2">
                     <HelpCircle className="h-4.5 w-4.5 text-accent shrink-0 mt-0.5" />
                     {faq.q}
                   </h4>

@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers'
+
 const SECRET_KEY = process.env.JWT_SECRET || 'erudogix-super-secret-key-123456789'
 const encoder = new TextEncoder()
 
@@ -23,7 +25,7 @@ function base64Decode(str: string): string {
   return decodeURIComponent(escape(atob(str)))
 }
 
-export async function encryptSession(payload: any): Promise<string> {
+export async function encryptSession(payload: Record<string, unknown>): Promise<string> {
   const key = await getSigningKey()
   const dataStr = JSON.stringify({
     ...payload,
@@ -39,7 +41,7 @@ export async function encryptSession(payload: any): Promise<string> {
   return `${base64Encode(dataStr)}.${signatureHex}`
 }
 
-export async function decryptSession(token: string): Promise<any | null> {
+export async function decryptSession(token: string): Promise<Record<string, unknown> | null> {
   try {
     const [dataBase64, signatureHex] = token.split('.')
     if (!dataBase64 || !signatureHex) return null
@@ -64,7 +66,18 @@ export async function decryptSession(token: string): Promise<any | null> {
     }
     
     return payload
-  } catch (err) {
+  } catch {
+    return null
+  }
+}
+
+export async function getSessionPayload(): Promise<Record<string, unknown> | null> {
+  try {
+    const cookieStore = await cookies()
+    const sessionToken = cookieStore.get('erudogix_session')?.value
+    if (!sessionToken) return null
+    return await decryptSession(sessionToken)
+  } catch {
     return null
   }
 }

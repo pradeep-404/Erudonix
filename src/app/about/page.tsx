@@ -8,7 +8,6 @@ import {
   Sparkles, 
   MapPin, 
   Mail, 
-  Phone, 
   Globe, 
   Award, 
   Code2, 
@@ -39,6 +38,15 @@ export default function AboutPage() {
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden bg-background">
+      {/* Dynamic Floating Particles Overlay */}
+      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+        <div className="absolute top-[15%] left-0 w-3 h-3 rounded-full bg-gemini-indigo/20 blur-[2px] animate-wind-slow-1" />
+        <div className="absolute top-[45%] left-0 w-4 h-4 rounded-full bg-gemini-purple/15 blur-[1px] animate-wind-slow-2" />
+        <div className="absolute top-[75%] left-0 w-2.5 h-2.5 rounded-full bg-gemini-amber/15 blur-[2px] animate-wind-slow-3" />
+        <div className="absolute top-[30%] left-0 w-2 h-2 rounded-full bg-gemini-blue/15 blur-[1px] animate-wind-slow-1" style={{animationDelay: '5s'}} />
+        <div className="absolute top-[60%] left-0 w-3.5 h-3.5 rounded-full bg-gemini-indigo/10 blur-[3px] animate-wind-slow-2" style={{animationDelay: '9s'}} />
+      </div>
+
       <Navbar />
 
       <main className="flex-grow pt-24 pb-20 relative">
@@ -162,7 +170,7 @@ export default function AboutPage() {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
             >
               
-              {/* Founder Profile */}
+              {/* Founder Profile - Pradeep Ranwa */}
               <motion.div 
                 variants={{
                   hidden: { opacity: 0, y: 50 },
@@ -181,45 +189,64 @@ export default function AboutPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 shrink-0 rounded-full overflow-hidden border-2 border-gemini-blue/30 shadow-md">
-                        <img src="/images/team/pradeep.png" alt="Pradeep" className="h-full w-full object-cover" />
+                        <img src="/images/pradeep_new_profile.jpg" alt="Pradeep Ranwa" className="h-full w-full object-cover" />
                       </div>
                       <div>
-                        <h3 className="font-serif text-2xl font-bold text-foreground">Pradeep</h3>
-                        <p className="text-xs font-bold text-gemini-indigo uppercase tracking-wider mt-1">Founder & CEO</p>
+                        <h3 className="font-serif text-2xl font-bold text-foreground">Pradeep Ranwa</h3>
+                        <p className="text-xs font-bold text-gemini-indigo uppercase tracking-wider mt-1">Founder & Python Developer</p>
                       </div>
                     </div>
                     <span className="text-[9px] font-bold text-accent-warm bg-accent-warm-light px-2 py-0.5 rounded-full uppercase">
-                      Jaipur HQ
+                      Jaipur HQ & Curaj Alumnus
                     </span>
                   </div>
 
                   <p className="text-xs text-text-muted leading-relaxed">
-                    Visionary entrepreneur who started Erudogix in June 2025. With a focus on client relationships, premium product architecture, and operational integrity, Pradeep established Erudogix as Jaipur's fastest growing tech organization, bridging global student requirements with top-tier technical mentoring.
+                    Founder of Erudogix and Python Developer with hands-on experience in machine learning, backend APIs, and data analysis. Skilled in developing scalable web applications and intelligent chatbot services.
                   </p>
 
-                  <div className="space-y-2.5 pt-4 border-t border-border/80">
-                    <div className="flex items-center gap-2 text-xs text-text-muted">
+                  <div className="space-y-2.5 pt-4 border-t border-border/80 text-xs text-text-muted">
+                    <div className="flex items-center gap-2">
+                      <Award className="h-3.5 w-3.5 text-amber-500" />
+                      <span>Int. M.Sc. in Computer Science (Central University of Rajasthan)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Code2 className="h-3.5 w-3.5 text-gemini-blue" />
+                      <span>Python, Flask, Django, scikit-learn, TensorFlow, SQL</span>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <MapPin className="h-3.5 w-3.5 text-accent-warm" />
                       <span>Jaipur, Rajasthan, India</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-text-muted">
-                      <Rocket className="h-3.5 w-3.5 text-gemini-blue" />
-                      <span>Specializes in: Business Operations & Product Management</span>
-                    </div>
+                  </div>
+
+                  {/* Contact details */}
+                  <div className="pt-2 flex flex-wrap gap-3">
+                    <a href="mailto:pradeepranva419@gmail.com" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="Email Pradeep">
+                      <Mail className="h-3.5 w-3.5" />
+                    </a>
+                    <a href="https://linkedin.com/in/pradeepranva" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="LinkedIn Profile">
+                      <Globe className="h-3.5 w-3.5" />
+                    </a>
                   </div>
                 </div>
 
-                <div className="pt-6">
-                  <Link 
-                    href="/auth/signup"
-                    className="inline-flex items-center text-xs font-bold text-gemini-indigo hover:underline gap-1.5"
-                  >
-                    Collaborate with Pradeep <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
+                <div className="pt-4 space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Key Achievements & Projects</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 bg-background border border-border/60 rounded-xl">
+                      <div className="font-bold text-[10px] text-foreground">AI Coding Assistant</div>
+                      <p className="text-[9px] text-text-muted">Offline Python & NLP</p>
+                    </div>
+                    <div className="p-2 bg-background border border-border/60 rounded-xl">
+                      <div className="font-bold text-[10px] text-foreground">AI Chatbot Project</div>
+                      <p className="text-[9px] text-text-muted">Best Final Year Award (2023)</p>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
 
-              {/* Developer Profile - Pradeep Ranwa */}
+              {/* Developer Profile - Preeti */}
               <motion.div 
                 variants={{
                   hidden: { opacity: 0, y: 50 },
@@ -273,9 +300,6 @@ export default function AboutPage() {
                   <div className="pt-2 flex flex-wrap gap-3">
                     <a href="mailto:preetishams204@gmail.com" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="Email Preeti">
                       <Mail className="h-3.5 w-3.5" />
-                    </a>
-                    <a href="tel:8168801384" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="Call Preeti">
-                      <Phone className="h-3.5 w-3.5" />
                     </a>
                     <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="LinkedIn Profile">
                       <Globe className="h-3.5 w-3.5" />
@@ -352,9 +376,6 @@ export default function AboutPage() {
                   <div className="pt-2 flex flex-wrap gap-3">
                     <a href="mailto:shubhamkur25@gmail.com" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="Email Shubham">
                       <Mail className="h-3.5 w-3.5" />
-                    </a>
-                    <a href="tel:7717780275" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="Call Shubham">
-                      <Phone className="h-3.5 w-3.5" />
                     </a>
                     <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-background border border-border hover:bg-accent-warm-light hover:text-accent-warm transition-colors" title="LinkedIn Profile">
                       <Globe className="h-3.5 w-3.5" />

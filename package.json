@@ -13,6 +13,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
+    "aws-sdk": "^2.1693.0",
     "email-existence": "^0.1.6",
     "email-validator": "^2.0.4",
     "framer-motion": "^12.40.0",

@@ -1,18 +1,10 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { decryptSession } from '@/lib/auth-session'
+import { getSessionPayload } from '@/lib/auth-session'
 import { query } from '@/lib/db'
 
 export async function GET() {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('erudogix_session')?.value
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const payload = await decryptSession(sessionToken)
+    const payload = await getSessionPayload()
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -51,21 +43,14 @@ export async function GET() {
 
     return NextResponse.json({ requests: requestList.rows })
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('erudogix_session')?.value
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const payload = await decryptSession(sessionToken)
+    const payload = await getSessionPayload()
     if (!payload || payload.role !== 'student') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -109,7 +94,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ request: insertRes.rows[0] })
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }

@@ -9,7 +9,6 @@ import {
   ArrowRight, 
   User, 
   Edit3, 
-  Save, 
   Loader2, 
   ChevronDown, 
   BookOpen, 
@@ -17,8 +16,11 @@ import {
   AlertCircle,
   Sun,
   Moon,
-  ShieldCheck
+  ShieldCheck,
+  ArrowLeft,
+  RefreshCw
 } from 'lucide-react'
+
 
 export default function Navbar() {
   const router = useRouter()
@@ -43,7 +45,17 @@ export default function Navbar() {
 
   // Auth Drawer States (Left Sidebar)
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login')
+  const [authResendCooldown, setAuthResendCooldown] = useState(0)
+
+  useEffect(() => {
+    if (authResendCooldown <= 0) return
+    const timer = setInterval(() => {
+      setAuthResendCooldown((prev) => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [authResendCooldown])
+
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
   const [authFullName, setAuthFullName] = useState('')
@@ -58,16 +70,109 @@ export default function Navbar() {
   const hudRef = React.useRef<HTMLDivElement>(null)
   const [isProfileHudOpen, setIsProfileHudOpen] = useState(false)
   const [userRequests, setUserRequests] = useState<any[]>([])
-  
-  // Profile edit states inside HUD
-  const [editMode, setEditMode] = useState(false)
-  const [editName, setEditName] = useState('')
+
+  // Profile Editor States
+  const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false)
+  const [editFullName, setEditFullName] = useState('')
   const [editUniversity, setEditUniversity] = useState('')
-  const [hudIsOtherUniversity, setHudIsOtherUniversity] = useState(false)
-  const [hudCustomUniversity, setHudCustomUniversity] = useState('')
+  const [editOtherUniversity, setEditOtherUniversity] = useState('')
   const [editCourse, setEditCourse] = useState('')
-  const [editLoading, setEditLoading] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
+  const [editAvatarUrl, setEditAvatarUrl] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [editorSaving, setEditorSaving] = useState(false)
+  const [editorError, setEditorError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (user) {
+      setEditFullName(user.full_name || '')
+      setEditCourse(user.course || '')
+      setEditAvatarUrl(user.avatar_url || '')
+      
+      const predefinedUnis = [
+        'Stanford University',
+        'Harvard University',
+        'Massachusetts Institute of Technology',
+        'University of Oxford',
+        'University of Cambridge',
+        'California Institute of Technology'
+      ]
+      
+      if (user.university) {
+        if (predefinedUnis.includes(user.university)) {
+          setEditUniversity(user.university)
+          setEditOtherUniversity('')
+        } else {
+          setEditUniversity('Other')
+          setEditOtherUniversity(user.university)
+        }
+      } else {
+        setEditUniversity('')
+        setEditOtherUniversity('')
+      }
+    }
+  }, [user, isProfileEditorOpen])
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    setUploadingAvatar(true)
+    setEditorError(null)
+    
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      const res = await fetch('/api/auth/upload-avatar', {
+        method: 'POST',
+        body: formData
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload avatar')
+      }
+      setEditAvatarUrl(data.avatarUrl)
+      await checkUser()
+    } catch (err: any) {
+      setEditorError(err.message || 'Avatar upload failed')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditorSaving(true)
+    setEditorError(null)
+    
+    const universityValue = editUniversity === 'Other' ? editOtherUniversity : editUniversity
+    
+    try {
+      const res = await fetch('/api/auth/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: editFullName,
+          avatarUrl: editAvatarUrl,
+          university: universityValue,
+          course: editCourse
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update profile settings')
+      }
+      
+      await checkUser()
+      setIsProfileEditorOpen(false)
+    } catch (err: any) {
+      setEditorError(err.message || 'Failed to save profile')
+    } finally {
+      setEditorSaving(false)
+    }
+  }
+  
+
 
   const checkUser = async () => {
     try {
@@ -137,32 +242,6 @@ export default function Navbar() {
   useEffect(() => {
     if (user) {
       fetchUserRequests()
-      setEditName(user.full_name || '')
-      setEditCourse(user.course || '')
-      
-      const predefined = [
-        "University of Oxford (UK)",
-        "University of Cambridge (UK)",
-        "University College London (UK)",
-        "University of Sydney (Australia)",
-        "University of Melbourne (Australia)",
-        "Harvard University (US)",
-        "Stanford University (US)",
-        "Trinity College Dublin (Ireland)",
-        "University College Dublin (Ireland)"
-      ]
-      
-      if (user.university) {
-        if (predefined.includes(user.university)) {
-          setEditUniversity(user.university)
-          setHudIsOtherUniversity(false)
-          setHudCustomUniversity('')
-        } else {
-          setEditUniversity("Other / Independent Organisation")
-          setHudIsOtherUniversity(true)
-          setHudCustomUniversity(user.university)
-        }
-      }
     } else {
       setUserRequests([])
     }
@@ -177,6 +256,41 @@ export default function Navbar() {
       router.push('/')
     } catch (err) {
       console.error('Logout error:', err)
+    }
+  }
+
+
+
+  const handleDrawerResendOtp = async () => {
+    if (authResendCooldown > 0) return
+    setAuthError(null)
+    setAuthLoading(true)
+
+    const url = authMode === 'signup' ? '/api/auth/send-otp' : '/api/auth/forgot-password'
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to resend code')
+      }
+
+      if (data.devOtp) {
+        setAuthDevOtp(data.devOtp)
+        setAuthOtpCode(data.devOtp)
+      } else {
+        setAuthDevOtp(null)
+      }
+
+      setAuthResendCooldown(60) // 60s for subsequent resends
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to resend verification code')
+    } finally {
+      setAuthLoading(false)
     }
   }
 
@@ -202,15 +316,45 @@ export default function Navbar() {
           setAuthDevOtp(otpData.devOtp)
           setAuthOtpCode(otpData.devOtp)
         }
+        setAuthResendCooldown(30)
         setAuthLoading(false)
         return
       }
 
-      // Proceed with Login (which handles its own OTP sending) or final Signup (which expects OTP)
-      const url = authMode === 'login' ? '/api/auth/login' : '/api/auth/signup'
-      const body = authMode === 'login' 
-        ? { email: authEmail, password: authPassword, ...(authOtpStep ? { otpCode: authOtpCode } : {}) }
-        : { email: authEmail, password: authPassword, fullName: authFullName, role: 'student', requirementType: authRequirementType, ...(authOtpStep ? { otpCode: authOtpCode } : {}) }
+      // If in forgot mode and we haven't asked for OTP yet, request the reset OTP first
+      if (authMode === 'forgot' && !authOtpStep) {
+        const resetRes = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: authEmail }),
+        })
+        const resetData = await resetRes.json()
+        if (!resetRes.ok) throw new Error(resetData.error || 'Failed to request reset code')
+
+        setAuthOtpStep(true)
+        if (resetData.devOtp) {
+          setAuthDevOtp(resetData.devOtp)
+          setAuthOtpCode(resetData.devOtp)
+        }
+        setAuthResendCooldown(30)
+        setAuthLoading(false)
+        return
+      }
+
+      // Proceed with Login, final Signup, or Reset Password
+      let url = ''
+      let body = {}
+
+      if (authMode === 'login') {
+        url = '/api/auth/login'
+        body = { email: authEmail, password: authPassword }
+      } else if (authMode === 'signup') {
+        url = '/api/auth/signup'
+        body = { email: authEmail, password: authPassword, fullName: authFullName, role: 'student', requirementType: authRequirementType, otpCode: authOtpCode }
+      } else if (authMode === 'forgot') {
+        url = '/api/auth/reset-password'
+        body = { email: authEmail, otpCode: authOtpCode, newPassword: authPassword }
+      }
 
       const res = await fetch(url, {
         method: 'POST',
@@ -220,17 +364,6 @@ export default function Navbar() {
 
       const data = await res.json()
       
-      // If login requires OTP, it returns 200 with requiresOtp: true
-      if (res.ok && data.requiresOtp) {
-        setAuthOtpStep(true)
-        if (data.devOtp) {
-          setAuthDevOtp(data.devOtp)
-          setAuthOtpCode(data.devOtp)
-        }
-        setAuthLoading(false)
-        return
-      }
-
       if (!res.ok) {
         throw new Error(data.error || 'Authentication failed')
       }
@@ -242,6 +375,7 @@ export default function Navbar() {
       setAuthFullName('')
       setAuthOtpCode('')
       setAuthDevOtp(null)
+      setAuthResendCooldown(0)
       
       await checkUser()
       router.refresh()
@@ -253,46 +387,6 @@ export default function Navbar() {
     }
   }
 
-
-
-  // Handle updates from Navbar Profile HUD
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setEditError(null)
-    setEditLoading(true)
-
-    const finalUniversity = hudIsOtherUniversity ? hudCustomUniversity : editUniversity
-
-    if (!editName.trim() || !finalUniversity.trim() || !editCourse.trim()) {
-      setEditError('All fields are required.')
-      setEditLoading(false)
-      return
-    }
-
-    try {
-      const res = await fetch('/api/auth/session', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: editName,
-          university: finalUniversity,
-          course: editCourse
-        })
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update profile')
-      }
-
-      setEditMode(false)
-      await checkUser() // reload details
-    } catch (err: any) {
-      setEditError(err.message || 'Update failed')
-    } finally {
-      setEditLoading(false)
-    }
-  }
 
   const getDashboardUrl = () => {
     if (!user) return '/dashboard'
@@ -397,13 +491,16 @@ export default function Navbar() {
                       <div className="bg-background border border-border/80 p-3.5 rounded-2xl space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] font-bold text-accent-warm uppercase tracking-wider">Profile Info</span>
-                          <Link 
-                            href={`${getDashboardUrl()}?tab=settings`}
-                            onClick={() => setIsProfileHudOpen(false)}
-                            className="text-[9px] font-semibold text-gemini-indigo hover:underline flex items-center gap-0.5"
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setIsProfileHudOpen(false)
+                              setIsProfileEditorOpen(true)
+                            }}
+                            className="text-[9px] font-semibold text-gemini-indigo hover:underline flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
                           >
-                            <Edit3 className="h-3 w-3" /> Edit Settings
-                          </Link>
+                            <Edit3 className="h-3 w-3" /> Edit Profile
+                          </button>
                         </div>
                         <div className="space-y-2 text-xs">
                           <div>
@@ -491,13 +588,16 @@ export default function Navbar() {
                   Sign In
                 </button>
                 <div className="h-4 w-px bg-[#3d4f61]" />
-                <Link
-                  href="/auth/signup"
-                  className="group inline-flex items-center justify-center text-sm font-bold px-5 py-2 rounded-full bg-[#ff9900] text-[#19222d] hover:bg-[#ec7211] transition-all duration-200 shadow-md shadow-[#ff9900]/20"
+                <button
+                  onClick={() => {
+                    setAuthMode('signup');
+                    setIsAuthDrawerOpen(true);
+                  }}
+                  className="group inline-flex items-center justify-center text-sm font-bold px-5 py-2 rounded-full bg-[#ff9900] text-[#19222d] hover:bg-[#ec7211] transition-all duration-200 shadow-md shadow-[#ff9900]/20 cursor-pointer"
                 >
-                  Sign Up
+                  Get Started
                   <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                </button>
               </div>
             )}
           </div>
@@ -624,13 +724,16 @@ export default function Navbar() {
                   >
                     Sign in
                   </button>
-                  <Link
-                    href="/auth/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-center font-bold py-3 rounded bg-[#ff9900] text-[#19222d] hover:bg-[#ec7211]"
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setAuthMode('signup');
+                      setIsAuthDrawerOpen(true);
+                    }}
+                    className="text-center font-bold py-3 rounded bg-[#ff9900] text-[#19222d] hover:bg-[#ec7211] cursor-pointer"
                   >
                     Get Started
-                  </Link>
+                  </button>
                 </>
               )}
             </div>
@@ -685,12 +788,18 @@ export default function Navbar() {
         <div className="flex-grow overflow-y-auto p-6 space-y-5">
           <div>
             <h3 className="text-base font-bold text-white font-mono">
-              {authMode === 'login' ? 'Welcome back' : 'Create your account'}
+              {authMode === 'login' 
+                ? 'Welcome back' 
+                : authMode === 'signup' 
+                ? 'Create your account' 
+                : 'Reset Password'}
             </h3>
             <p className="text-xs text-[#8b949e] mt-1 leading-relaxed">
               {authMode === 'login'
                 ? 'Access your cloud coaching modules, DPO logs, and secure invoice portals.'
-                : 'Join Erudogix Console and start your learning journey today.'}
+                : authMode === 'signup'
+                ? 'Join Erudogix Console and start your learning journey today.'
+                : 'Verify email and update password to access Erudogix console.'}
             </p>
           </div>
 
@@ -731,21 +840,50 @@ export default function Navbar() {
                   </p>
                 </div>
 
+                {authMode === 'forgot' && (
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-md border border-[#232f3e] bg-[#232f3e] text-white text-xs focus:outline-none focus:border-[#ff9900] transition-colors placeholder:text-[#5a6876]"
+                      placeholder="Minimum 6 characters"
+                    />
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={authLoading || authOtpCode.length !== 6}
                   className="w-full flex items-center justify-center font-bold px-6 py-3 rounded-lg bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-colors text-sm disabled:opacity-50 cursor-pointer shadow-lg"
                 >
-                  {authLoading ? 'Verifying...' : 'Verify & Continue'}
+                  {authLoading ? 'Verifying...' : authMode === 'forgot' ? 'Reset & Auto Login' : 'Verify & Continue'}
                   {!authLoading && <ShieldCheck className="ml-1.5 h-4 w-4" />}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthOtpStep(false)}
-                  className="w-full text-center text-xs text-[#8b949e] hover:text-[#eaeded] font-mono mt-2"
-                >
-                  Back
-                </button>
+                
+                <div className="flex items-center justify-between mt-1 text-[10px] font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setAuthOtpStep(false)}
+                    className="text-[#8b949e] hover:text-[#eaeded] inline-flex items-center gap-0.5 font-semibold transition-colors cursor-pointer bg-transparent border-none"
+                  >
+                    <ArrowLeft className="h-3 w-3" /> Back
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDrawerResendOtp}
+                    disabled={authResendCooldown > 0 || authLoading}
+                    className="text-[#ff9900] hover:text-[#ec7211] disabled:text-[#8b949e] font-bold inline-flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer bg-transparent border-none"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${authLoading ? 'animate-spin' : ''}`} />
+                    {authResendCooldown > 0 ? `Resend (${authResendCooldown}s)` : 'Resend Code'}
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -779,100 +917,106 @@ export default function Navbar() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-md border border-[#232f3e] bg-[#232f3e] text-white text-xs focus:outline-none focus:border-[#ff9900] transition-colors placeholder:text-[#5a6876]"
-                    placeholder="••••••••"
-                  />
-                </div>
+                {authMode === 'forgot' ? (
+                  <>
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full flex items-center justify-center font-bold px-6 py-3 rounded-lg bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-colors text-sm disabled:opacity-50 cursor-pointer shadow-lg"
+                    >
+                      {authLoading ? 'Sending...' : 'Send Reset Code'}
+                      {!authLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
+                    </button>
 
-                {authMode === 'signup' && (
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5">
-                      Service Interest
-                    </label>
-                    <div className="flex flex-col gap-1.5">
-                      {([
-                        { id: 'academic', label: '📚 Academic Support' },
-                        { id: 'slm', label: '🤖 SLM Model Tuning' },
-                        { id: 'app_studio', label: '💻 App Studio Build' }
-                      ] as const).map((opt) => (
-                        <button
-                          type="button"
-                          key={opt.id}
-                          onClick={() => setAuthRequirementType(opt.id)}
-                          className={`py-2 px-3 rounded-lg text-[11px] font-semibold text-left border transition-all ${
-                            authRequirementType === opt.id
-                              ? 'bg-[#ff9900]/10 border-[#ff9900]/50 text-[#ff9900]'
-                              : 'border-[#232f3e] bg-[#232f3e] text-[#8b949e] hover:border-[#3d4f61]'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('login')
+                        setAuthError(null)
+                      }}
+                      className="w-full text-center text-xs text-[#8b949e] hover:text-[#eaeded] font-mono mt-2 cursor-pointer bg-transparent border-none"
+                    >
+                      Back to Sign In
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e]">
+                          Password
+                        </label>
+                        {authMode === 'login' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAuthMode('forgot')
+                              setAuthOtpStep(false)
+                              setAuthError(null)
+                            }}
+                            className="text-[10px] text-[#ff9900] hover:underline cursor-pointer bg-transparent border-none font-semibold"
+                          >
+                            Forgot Password?
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="password"
+                        required
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-md border border-[#232f3e] bg-[#232f3e] text-white text-xs focus:outline-none focus:border-[#ff9900] transition-colors placeholder:text-[#5a6876]"
+                        placeholder="••••••••"
+                      />
                     </div>
-                  </div>
+
+                    {authMode === 'signup' && (
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5">
+                          Service Interest
+                        </label>
+                        <div className="flex flex-col gap-1.5">
+                          {([
+                            { id: 'academic', label: '📚 Academic Support' },
+                            { id: 'slm', label: '🤖 SLM Model Tuning' },
+                            { id: 'app_studio', label: '💻 App Studio Build' }
+                          ] as const).map((opt) => (
+                            <button
+                              type="button"
+                              key={opt.id}
+                              onClick={() => setAuthRequirementType(opt.id)}
+                              className={`py-2 px-3 rounded-lg text-[11px] font-semibold text-left border transition-all ${
+                                authRequirementType === opt.id
+                                  ? 'bg-[#ff9900]/10 border-[#ff9900]/50 text-[#ff9900]'
+                                  : 'border-[#232f3e] bg-[#232f3e] text-[#8b949e] hover:border-[#3d4f61]'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full flex items-center justify-center font-bold px-6 py-3 rounded-lg bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-colors text-sm disabled:opacity-50 cursor-pointer shadow-lg"
+                    >
+                      {authLoading ? (
+                        <>
+                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                          {authMode === 'login' ? 'Signing in...' : 'Creating account...'}
+                        </>
+                      ) : (
+                        <>
+                          {authMode === 'login' ? 'Sign In' : 'Create Account'}
+                          <ArrowRight className="ml-1.5 h-4 w-4" />
+                        </>
+                      )}
+                    </button>
+                  </>
                 )}
-
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full flex items-center justify-center font-bold px-6 py-3 rounded-lg bg-gradient-to-r from-gemini-blue to-gemini-purple text-white hover:opacity-95 transition-colors text-sm disabled:opacity-50 cursor-pointer shadow-lg"
-                >
-                  {authLoading ? (
-                    <>
-                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                      {authMode === 'login' ? 'Signing in...' : 'Creating account...'}
-                    </>
-                  ) : (
-                    <>
-                      {authMode === 'login' ? 'Sign In' : 'Create Account'}
-                      <ArrowRight className="ml-1.5 h-4 w-4" />
-                    </>
-                  )}
-                </button>
-
-                <div className="relative py-2">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[#3d4f61]"></div>
-                  </div>
-                  <div className="relative flex justify-center text-[10px]">
-                    <span className="bg-[#19222d] px-2 text-[#8b949e] font-mono uppercase tracking-wider">Or continue with</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    className="flex items-center justify-center gap-2 px-4 py-2 border border-[#3d4f61] rounded-lg text-xs font-bold font-mono hover:bg-[#232f3e] transition-colors text-[#eaeded]"
-                    onClick={() => alert("Social auth provider setup required")}
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    Google
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center justify-center gap-2 px-4 py-2 border border-[#3d4f61] rounded-lg text-xs font-bold font-mono hover:bg-[#232f3e] transition-colors text-[#eaeded]"
-                    onClick={() => alert("Social auth provider setup required")}
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
-                    </svg>
-                    GitHub
-                  </button>
-                </div>
               </>
             )}
           </form>
@@ -882,7 +1026,7 @@ export default function Navbar() {
               No account?{' '}
               <button
                 onClick={() => { setAuthMode('signup'); setAuthError(null); }}
-                className="text-[#ff9900] hover:underline font-semibold"
+                className="text-[#ff9900] hover:underline font-semibold cursor-pointer bg-transparent border-none"
               >
                 Sign up free
               </button>
@@ -893,7 +1037,7 @@ export default function Navbar() {
               Already have an account?{' '}
               <button
                 onClick={() => { setAuthMode('login'); setAuthError(null); }}
-                className="text-[#ff9900] hover:underline font-semibold"
+                className="text-[#ff9900] hover:underline font-semibold cursor-pointer bg-transparent border-none"
               >
                 Sign in
               </button>
@@ -901,6 +1045,165 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Profile Edit Modal */}
+      {isProfileEditorOpen && (
+        <div className="fixed inset-0 bg-neutral-950/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#19222d] border border-[#232f3e] rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 text-[#eaeded] relative animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setIsProfileEditorOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#8b949e] hover:bg-[#232f3e] hover:text-white transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-bold text-white font-mono flex items-center gap-2">
+                <User className="h-5 w-5 text-[#ff9900]" /> Edit Profile
+              </h3>
+              <p className="text-xs text-[#8b949e]">
+                Modify your identity, photo, and academic affiliation settings.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              {editorError && (
+                <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[11px] p-2.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+                  <span>{editorError}</span>
+                </div>
+              )}
+
+              {/* Avatar Upload Container */}
+              <div className="flex items-center gap-4 bg-[#232f3e] p-3 rounded-2xl border border-white/5">
+                <div className="h-16 w-16 rounded-full overflow-hidden bg-neutral-800 text-white flex items-center justify-center font-bold text-lg border-2 border-white/10 shrink-0 relative group">
+                  {editAvatarUrl ? (
+                    <img src={editAvatarUrl} alt="Preview" className="h-full w-full object-cover" />
+                  ) : (
+                    editFullName ? editFullName[0].toUpperCase() : 'U'
+                  )}
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] font-mono">
+                    Profile Photo
+                  </span>
+                  <label className="inline-block px-3 py-1.5 rounded-lg border border-[#3d4f61] hover:border-[#ff9900] bg-transparent text-[11px] font-bold font-mono text-[#eaeded] cursor-pointer hover:bg-white/5 transition-all">
+                    {uploadingAvatar ? 'Uploading...' : 'Choose Image'}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleAvatarUpload} 
+                      className="hidden" 
+                      disabled={uploadingAvatar}
+                    />
+                  </label>
+                  <p className="text-[9px] text-[#8b949e]">Max size 5MB (JPG, PNG, WebP)</p>
+                </div>
+              </div>
+
+              {/* Full Name */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5 font-mono">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-md border border-[#232f3e] bg-[#232f3e] text-white text-xs focus:outline-none focus:border-[#ff9900] transition-colors"
+                  placeholder="Full Name"
+                />
+              </div>
+
+              {/* University Select */}
+              {user?.role === 'student' && (
+                <>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5 font-mono">
+                      University
+                    </label>
+                    <select
+                      value={editUniversity}
+                      onChange={(e) => setEditUniversity(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-md border border-[#232f3e] bg-[#232f3e] text-white text-xs focus:outline-none focus:border-[#ff9900] transition-colors font-mono font-semibold"
+                    >
+                      <option value="">Select University</option>
+                      <option value="Stanford University">Stanford University</option>
+                      <option value="Harvard University">Harvard University</option>
+                      <option value="Massachusetts Institute of Technology">Massachusetts Institute of Technology</option>
+                      <option value="University of Oxford">University of Oxford</option>
+                      <option value="University of Cambridge">University of Cambridge</option>
+                      <option value="California Institute of Technology">California Institute of Technology</option>
+                      <option value="Other">Other (Type name below)</option>
+                    </select>
+                  </div>
+
+                  {editUniversity === 'Other' && (
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5 font-mono">
+                        University Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editOtherUniversity}
+                        onChange={(e) => setEditOtherUniversity(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-md border border-[#232f3e] bg-[#232f3e] text-white text-xs focus:outline-none focus:border-[#ff9900] transition-colors"
+                        placeholder="Enter University name"
+                      />
+                    </div>
+                  )}
+
+                  {/* Course / Major */}
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#8b949e] mb-1.5 font-mono">
+                      Course / Major
+                    </label>
+                    <input
+                      type="text"
+                      value={editCourse}
+                      onChange={(e) => setEditCourse(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-md border border-[#232f3e] bg-[#232f3e] text-white text-xs focus:outline-none focus:border-[#ff9900] transition-colors"
+                      placeholder="e.g. Computer Science, Physics"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#232f3e]">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileEditorOpen(false)}
+                  className="font-bold py-2.5 rounded-lg border border-[#232f3e] hover:bg-[#232f3e] text-[11px] text-[#8b949e] hover:text-white transition-all text-center font-mono"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editorSaving || uploadingAvatar}
+                  className="font-bold py-2.5 rounded-lg bg-[#ff9900] text-[#19222d] hover:bg-[#ec7211] text-[11px] transition-all text-center flex items-center justify-center gap-1 font-mono disabled:opacity-55 cursor-pointer"
+                >
+                  {editorSaving ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   )
 }

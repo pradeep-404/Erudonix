@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { decryptSession } from '@/lib/auth-session'
+import { getSessionPayload } from '@/lib/auth-session'
 import { query } from '@/lib/db'
 
 async function hashPassword(password: string, salt: string): Promise<string> {
@@ -12,14 +11,7 @@ async function hashPassword(password: string, salt: string): Promise<string> {
 
 export async function GET() {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('erudogix_session')?.value
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const payload = await decryptSession(sessionToken)
+    const payload = await getSessionPayload()
     if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized: Admin permissions required' }, { status: 403 })
     }
@@ -33,21 +25,14 @@ export async function GET() {
     `)
     return NextResponse.json({ users: usersRes.rows })
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }
 
 export async function PUT(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('erudogix_session')?.value
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const payload = await decryptSession(sessionToken)
+    const payload = await getSessionPayload()
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -126,21 +111,14 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ error: 'Access Denied' }, { status: 403 })
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('erudogix_session')?.value
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const payload = await decryptSession(sessionToken)
+    const payload = await getSessionPayload()
     if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized: Admin permissions required' }, { status: 403 })
     }
@@ -161,7 +139,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true, message: 'User account deleted successfully' })
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }

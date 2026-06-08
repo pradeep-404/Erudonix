@@ -1,13 +1,36 @@
 import { Pool } from 'pg'
+import AWS from 'aws-sdk'
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://pradeep_choudhary:123456@localhost:5432/cortex'
+const rdsHost = process.env.RDSHOST
+const useRDS = process.env.USE_RDS === 'true' || !!process.env.RDSHOST
 
-const pool = new Pool({
-  connectionString,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-})
+const poolConfig: any = {}
+
+if (useRDS && rdsHost) {
+  AWS.config.update({ region: 'eu-north-1' })
+  poolConfig.host = rdsHost
+  poolConfig.port = 5432
+  poolConfig.database = process.env.DB_NAME || 'postgres'
+  poolConfig.user = process.env.DB_USER || 'postgres'
+  poolConfig.password = () => {
+    const signer = new AWS.RDS.Signer({
+      region: 'eu-north-1',
+      hostname: rdsHost,
+      port: 5432,
+      username: poolConfig.user
+    })
+    return signer.getAuthToken({})
+  }
+  poolConfig.ssl = { rejectUnauthorized: false }
+} else {
+  poolConfig.connectionString = process.env.DATABASE_URL || 'postgresql://pradeep_choudhary:123456@localhost:5432/cortex'
+}
+
+poolConfig.max = 20
+poolConfig.idleTimeoutMillis = 30000
+poolConfig.connectionTimeoutMillis = 2000
+
+const pool = new Pool(poolConfig)
 
 async function hashPassword(password: string, salt: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(password + salt)
@@ -21,14 +44,27 @@ let seeded = false
 export const seedDefaultUsers = async () => {
   if (seeded) return
   try {
-    const checkAdmin = await pool.query('SELECT 1 FROM public.users WHERE email = $1', ['admin@erudogix.com'])
-    if (checkAdmin.rows.length === 0) {
-      console.log('Seeding permanent default users...')
-      
+    const checkTutor1 = await pool.query('SELECT 1 FROM public.users WHERE email = $1', ['tutor1@erudogix.com'])
+    if (checkTutor1.rows.length === 0) {
+      console.log('Clean up old seed users and seed new admin + 4 tutors...')
+
+      // 1. Clean up old student and tutor
+      await pool.query(`
+        DELETE FROM public.specialists WHERE id IN (SELECT id FROM public.users WHERE email IN ('student@erudogix.com', 'tutor@erudogix.com'))
+      `)
+      await pool.query(`
+        DELETE FROM public.profiles WHERE id IN (SELECT id FROM public.users WHERE email IN ('student@erudogix.com', 'tutor@erudogix.com'))
+      `)
+      await pool.query(`
+        DELETE FROM public.users WHERE email IN ('student@erudogix.com', 'tutor@erudogix.com')
+      `)
+
       const usersToSeed = [
-        { email: 'student@erudogix.com', password: 'studentpass123', name: 'Student Demo', role: 'student' },
-        { email: 'tutor@erudogix.com', password: 'tutorpass123', name: 'Tutor Specialist', role: 'specialist' },
-        { email: 'admin@erudogix.com', password: 'adminpass123', name: 'System Admin', role: 'admin' }
+        { email: 'admin@erudogix.com', password: 'adminpass123', name: 'System Admin', role: 'admin' },
+        { email: 'tutor1@erudogix.com', password: 'tutorpass1', name: 'Tutor Specialist 1', role: 'specialist' },
+        { email: 'tutor2@erudogix.com', password: 'tutorpass2', name: 'Tutor Specialist 2', role: 'specialist' },
+        { email: 'tutor3@erudogix.com', password: 'tutorpass3', name: 'Tutor Specialist 3', role: 'specialist' },
+        { email: 'tutor4@erudogix.com', password: 'tutorpass4', name: 'Tutor Specialist 4', role: 'specialist' }
       ]
 
       for (const u of usersToSeed) {
@@ -52,11 +88,11 @@ export const seedDefaultUsers = async () => {
             `INSERT INTO public.specialists (id, bio, subject_specialties, is_available) 
              VALUES ($1, $2, $3, $4) 
              ON CONFLICT (id) DO NOTHING`,
-            [userId, 'Lead Developer & AI Specialist', '{Python, Machine Learning, Django, Flask}', true]
+            [userId, 'Academic Tutor & Specialist', '{Mathematics, Computer Science, Economics, Physics}', true]
           )
         }
       }
-      console.log('Permanent default users seeded successfully!')
+      console.log('Seeding completed successfully!')
     }
     seeded = true
   } catch (err) {
@@ -64,7 +100,7 @@ export const seedDefaultUsers = async () => {
   }
 }
 
-export const query = async (text: string, params?: any[]) => {
+export const query = async (text: string, params?: unknown[]) => {
   await seedDefaultUsers()
   const res = await pool.query(text, params)
   return res
